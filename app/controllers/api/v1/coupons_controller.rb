@@ -16,7 +16,7 @@ class Api::V1::CouponsController < ApplicationController
 
   def create
     merchant = Merchant.find(params[:merchant_id])
-    coupons = merchant.coupons.new(coupon_params)
+    coupon = merchant.coupons.new(coupon_params)
 
     if Coupon.exceeds_active_limit?(merchant) && coupon.active?
       raise ActiveRecord::RecordInvalid.new(coupon), "This Merchant already has 5 active coupons"
