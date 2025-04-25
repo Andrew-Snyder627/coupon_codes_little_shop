@@ -1,4 +1,4 @@
-class Api::V1::MerchantCoupons::CouponsController < ApplicationController
+class Api::V1::CouponsController < ApplicationController
   rescue_from ActiveRecord::RecordNotFound, with: :not_found_response
   rescue_from ActiveRecord::RecordInvalid, with: :incomplete_response
   rescue_from ActionDispatch::Http::Parameters::ParseError, with: :malformed_json_response
