@@ -305,6 +305,7 @@ RSpec.describe "Merchant API", type: :request do
       Merchant.delete_all
       Customer.delete_all
     end
+    # Was having issues with extra coupon counts, put this in as a guard and decided to keep it.
 
     it "returns merchants with coupons_count and invoice_coupon_count" do
       merchant = create(:merchant)
@@ -326,18 +327,6 @@ RSpec.describe "Merchant API", type: :request do
 
       result = json[:data].find { |m| m[:id] == merchant.id.to_s }
       attrs = result[:attributes]
-
-      # puts "All invoices:"
-      # Invoice.all.each do |inv|
-      #   puts "Invoice ID: #{inv.id}, coupon_id: #{inv.coupon_id.inspect}"
-      # end
-
-      # puts "Merchant invoices:"
-      # merchant.invoices.each do |inv|
-      #   puts "Invoice ID: #{inv.id}, coupon_id: #{inv.coupon_id.inspect}"
-      # end
-      
-      # puts "Total Invoice Coupon Count: #{merchant.invoices.where.not(coupon_id: nil).count}"
 
       expect(attrs[:name]).to eq(merchant.name)
       expect(attrs[:coupons_count]).to eq(2)
