@@ -8,6 +8,12 @@ class Coupon < ApplicationRecord
   validates :value_type, inclusion: { in: %w[dollar percent] }
   validates :active, inclusion: { in: [true, false] }
 
+  def self.for_merchant_by_status(merchant_id, status)
+    return none unless %w[true false].include?(status)
+
+    where(merchant_id: merchant_id, active: status == "true")
+  end
+
   def self.exceeds_active_limit?(merchant, params = {})
   activating = params[:active] == true || params[:active] == "true"
   activating && merchant.coupons.where(active: true).count >= 5

@@ -19,6 +19,22 @@ RSpec.describe "Invoice endpoints", type: :request do
       expect(data.first[:attributes][:status]).to eq("shipped")
     end
 
+    # New Test
+    it "includes coupon_id in the invoice response" do
+      merchant = create(:merchant)
+      customer = create(:customer)
+      coupon = create(:coupon, merchant: merchant)
+      invoice = create(:invoice, merchant: merchant, customer: customer, coupon: coupon)
+
+      get "/api/v1/merchants/#{merchant.id}/invoices"
+
+      expect(response).to be_successful
+      json = JSON.parse(response.body, symbolize_names: true)
+
+      result = json[:data].find { |i| i[:id] == invoice.id.to_s }
+      expect(result[:attributes][:coupon_id]).to eq(coupon.id)
+    end
+
     it 'returns an empty array if no invoices match the given status' do 
       merchant = Merchant.create!(name: "Test Merchant")
       customer = Customer.create!(first_name: "Lulu", last_name: "Customer")

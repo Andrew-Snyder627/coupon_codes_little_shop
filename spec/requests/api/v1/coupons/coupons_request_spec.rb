@@ -14,6 +14,46 @@ RSpec.describe "Coupons API", type: :request do
       expect(json[:data].count).to eq(3)
       expect(json[:data].first[:attributes]).to include(:name, :code, :value, :value_type, :active)
     end
+
+    it "returns only active coupons when active=true" do
+      merchant = create(:merchant)
+      create_list(:coupon, 2, merchant: merchant, active: true)
+      create(:coupon, merchant: merchant, active: false)
+
+      get api_v1_merchant_coupons_path(merchant), params: { active: "true" }
+
+      expect(response).to be_successful
+      json = JSON.parse(response.body, symbolize_names: true)
+
+      expect(json[:data].length).to eq(2)
+      expect(json[:data].all? { |c| c[:attributes][:active] }).to be true
+    end
+
+    it "returns only inactive coupons when active=false" do
+      merchant = create(:merchant)
+      create_list(:coupon, 2, merchant: merchant, active: false)
+      create(:coupon, merchant: merchant, active: true)
+  
+      get api_v1_merchant_coupons_path(merchant), params: { active: "false" }
+  
+      expect(response).to be_successful
+      json = JSON.parse(response.body, symbolize_names: true)
+  
+      expect(json[:data].length).to eq(2)
+      expect(json[:data].all? { |c| c[:attributes][:active] == false }).to be true
+    end
+  
+    it "returns an empty array for invalid active param" do
+      merchant = create(:merchant)
+      create_list(:coupon, 2, merchant: merchant)
+  
+      get api_v1_merchant_coupons_path(merchant), params: { active: "banana" }
+  
+      expect(response).to be_successful
+      json = JSON.parse(response.body, symbolize_names: true)
+  
+      expect(json[:data]).to eq([])
+    end
   end
 
   describe "GET /show" do
