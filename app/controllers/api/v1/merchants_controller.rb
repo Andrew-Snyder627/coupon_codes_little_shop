@@ -14,12 +14,9 @@ class Api::V1::MerchantsController < ApplicationController
     elsif params[:count] == "true"
       merchants = Merchant.with_item_counts
       render json: MerchantWithCountSerializer.new(merchants)
-    elsif params[:counts] == "coupons"
-      merchants = Merchant.with_coupon_and_invoice_counts
-      render json: MerchantWithCountsSerializer.new(merchants)
     else
       merchants = Merchant.all
-      render json: MerchantSerializer.new(merchants)
+      render json: MerchantWithCountsSerializer.new(merchants)
     end
   end
   
