@@ -265,5 +265,73 @@ RSpec.describe "Coupons API", type: :request do
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:errors].any? { |e| e.include?("Value type is not included in the list") }).to be true
     end
+
+    # Error Handling Tests
+    it "triggers error handling if coupon not found for show" do
+      merchant = create(:merchant)
+    
+      get api_v1_merchant_coupon_path(merchant, 999999)
+    
+      expect(response).to_not be_successful
+      expect(response).to have_http_status(:not_found)
+    
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:message]).to eq("your query could not be completed")
+      expect(json[:errors].first).to match(/Couldn't find Coupon with 'id'=999999/)
+      # Had to add a regex matcher here due to an added WHERE clause from ActiveRecord
+    end
+
+    it "triggers error handling if creating a coupon with missing required fields" do
+      merchant = create(:merchant)
+    
+      invalid_params = {
+        code: nil,  # missing required code
+        value: 10,
+        value_type: "dollar",
+        active: true
+      }
+    
+      post api_v1_merchant_coupons_path(merchant), params: { coupon: invalid_params }
+    
+      expect(response).to_not be_successful
+      expect(response).to have_http_status(:bad_request)
+    
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:message]).to eq("your query could not be completed")
+      expect(json[:errors].any? { |e| e.include?("Code can't be blank") }).to be true
+    end
+
+    it "triggers error handling if malformed JSON is sent in the request" do
+      merchant = create(:merchant)
+      headers = { "CONTENT_TYPE" => "application/json" } # Needed to add this for the bad json
+    
+      bad_json = '{ "coupon": { "name": "Bad Coupon", "code": "oops", "value": } }'  # malformed
+    
+      post api_v1_merchant_coupons_path(merchant), headers: headers, params: bad_json
+    
+      expect(response).to_not be_successful
+      expect(response).to have_http_status(:bad_request)
+    
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:message]).to eq("your query could not be completed")
+      expect(json[:errors].first).to include("Error occurred while parsing request parameters")
+    end
+
+    it "does not allow activating a coupon if merchant already has 5 active coupons" do
+      merchant = create(:merchant)
+      create_list(:coupon, 5, merchant: merchant, active: true)
+      inactive_coupon = create(:coupon, merchant: merchant, active: false)
+    
+      patch api_v1_merchant_coupon_path(merchant, inactive_coupon), params: {
+        coupon: { active: true }
+      }
+    
+      expect(response).to_not be_successful
+      expect(response.status).to eq(400)
+    
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:message]).to eq("your query could not be completed")
+      expect(json[:errors]).to include("This Merchant already has 5 active coupons")
+    end
   end
 end
