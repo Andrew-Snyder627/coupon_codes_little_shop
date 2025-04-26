@@ -47,7 +47,7 @@ RSpec.describe "Coupons API", type: :request do
       merchant = create(:merchant)
       create_list(:coupon, 2, merchant: merchant)
   
-      get api_v1_merchant_coupons_path(merchant), params: { active: "banana" }
+      get api_v1_merchant_coupons_path(merchant), params: { active: "peanut butter" }
   
       expect(response).to be_successful
       json = JSON.parse(response.body, symbolize_names: true)

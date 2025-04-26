@@ -3,6 +3,6 @@ FactoryBot.define do
     customer
     merchant
     status { "shipped" } # or "pending"
-    coupon
+    coupon { nil }
   end
 end

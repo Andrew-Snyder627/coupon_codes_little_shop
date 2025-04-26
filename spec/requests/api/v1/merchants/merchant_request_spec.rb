@@ -298,4 +298,50 @@ RSpec.describe "Merchant API", type: :request do
     end
   end
 
+  describe "GET /api/v1/merchants?counts=coupons" do
+    before do
+      Invoice.delete_all
+      Coupon.delete_all
+      Merchant.delete_all
+      Customer.delete_all
+    end
+
+    it "returns merchants with coupons_count and invoice_coupon_count" do
+      merchant = create(:merchant)
+      customer = create(:customer)
+
+      # Create coupons
+      coupon1 = create(:coupon, merchant: merchant)
+      coupon2 = create(:coupon, merchant: merchant)
+
+      # Create invoices, two using coupons
+      create(:invoice, merchant: merchant, customer: customer, coupon: coupon1)
+      create(:invoice, merchant: merchant, customer: customer, coupon: coupon2)
+      create(:invoice, merchant: merchant, customer: customer) # no coupon
+
+      get "/api/v1/merchants", params: { counts: "coupons" }
+
+      expect(response).to be_successful
+      json = JSON.parse(response.body, symbolize_names: true)
+
+      result = json[:data].find { |m| m[:id] == merchant.id.to_s }
+      attrs = result[:attributes]
+
+      # puts "All invoices:"
+      # Invoice.all.each do |inv|
+      #   puts "Invoice ID: #{inv.id}, coupon_id: #{inv.coupon_id.inspect}"
+      # end
+
+      # puts "Merchant invoices:"
+      # merchant.invoices.each do |inv|
+      #   puts "Invoice ID: #{inv.id}, coupon_id: #{inv.coupon_id.inspect}"
+      # end
+      
+      # puts "Total Invoice Coupon Count: #{merchant.invoices.where.not(coupon_id: nil).count}"
+
+      expect(attrs[:name]).to eq(merchant.name)
+      expect(attrs[:coupons_count]).to eq(2)
+      expect(attrs[:invoice_coupon_count]).to eq(2)
+    end
+  end
 end
