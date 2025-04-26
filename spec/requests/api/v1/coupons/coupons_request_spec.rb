@@ -69,4 +69,147 @@ RSpec.describe "Coupons API", type: :request do
       expect(json[:data][:attributes][:active]).to eq(false)
     end
   end
+
+  describe "SAD Path" do
+    it "cannot create a 6th active coupon for a merchant" do
+      merchant = create(:merchant)
+      create_list(:coupon, 5, merchant: merchant, active: true)
+
+      new_coupon_params = {
+        name: "Extra Deal",
+        code: "EXTRA2025",
+        value: 20,
+        value_type: "percent",
+        active: true
+      }
+
+      post api_v1_merchant_coupons_path(merchant), params: { coupon: new_coupon_params }
+
+      expect(response).to_not be_successful
+      expect(response.status).to eq(400)
+
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:message]).to eq("your query could not be completed")
+      expect(json[:errors]).to include("This Merchant already has 5 active coupons")
+    end
+
+    it "does not allow duplicate coupon codes" do
+      merchant = create(:merchant)
+      create(:coupon, merchant: merchant, code: "DUPE")
+
+      new_coupon_params = {
+        name: "Duplicate Deal",
+        code: "DUPE",
+        value: 10,
+        value_type: "dollar",
+        active: true
+      }
+
+      post api_v1_merchant_coupons_path(merchant), params: { coupon: new_coupon_params }
+
+      expect(response).to_not be_successful
+      expect(response.status).to eq(400)
+
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:errors]).to include("Validation failed: Code has already been taken")
+    end
+
+    it "does not allow deactivation if coupon is ona pending invoice" do
+      merchant = create(:merchant)
+      coupon = create(:coupon, merchant: merchant, active: true)
+      customer = create(:customer)
+      create(:invoice, merchant: merchant, customer: customer, coupon: coupon, status: "pending")
+
+      patch api_v1_merchant_coupon_path(merchant, coupon), params: { coupon: { active: false } }
+
+      expect(response).to_not be_successful
+      expect(response.status).to eq(400)
+
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:errors]).to include("Coupon cannot be deactivated due to pending invoices")
+    end
+
+    it "returns an error when creating a coupon without a name" do
+      merchant = create(:merchant)
+
+      invalid_params = {
+        code: "NONAME",
+        value: 10,
+        value_type: "dollar",
+        active: true
+      }
+    
+      post api_v1_merchant_coupons_path(merchant), params: { coupon: invalid_params }
+    
+      expect(response.status).to eq(400)
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:errors].any? { |e| e.include?("Name can't be blank") }).to be true
+    end
+
+    it "returns an error when creating a coupon without a value" do
+      merchant = create(:merchant)
+    
+      invalid_params = {
+        name: "No Value",
+        code: "NOVALUE",
+        value_type: "percent",
+        active: true
+      }
+    
+      post api_v1_merchant_coupons_path(merchant), params: { coupon: invalid_params }
+    
+      expect(response.status).to eq(400)
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:errors].any? { |e| e.include?("Validation failed: Value can't be blank") }).to be true
+    end
+
+    it "returns an error when creating a coupon without a value type" do
+      merchant = create(:merchant)
+    
+      invalid_params = {
+        name: "No Value Type",
+        code: "NOVALUETYPE",
+        value: 100,
+        active: true
+      }
+    
+      post api_v1_merchant_coupons_path(merchant), params: { coupon: invalid_params }
+    
+      expect(response.status).to eq(400)
+      json = JSON.parse(response.body, symbolize_names: true)
+      puts json[:errors]
+      expect(json[:errors].any? { |e| e.include?("Validation failed: Value type is not included in the list") }).to be true
+    end
+
+    it "rejects a coupon with an invalid value_type" do
+      merchant = create(:merchant)
+    
+      bad_params = {
+        name: "Wrong Type",
+        code: "WRONG",
+        value: 30,
+        value_type: "BOGO",  # not allowed
+        active: true
+      }
+    
+      post api_v1_merchant_coupons_path(merchant), params: { coupon: bad_params }
+    
+      expect(response.status).to eq(400)
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:errors].any? { |e| e.include?("Value type is not included in the list") }).to be true
+    end
+
+    it "returns an error when trying to update with an invalid value_type" do
+      merchant = create(:merchant)
+      coupon = create(:coupon, merchant: merchant)
+    
+      patch api_v1_merchant_coupon_path(merchant, coupon), params: {
+        coupon: { value_type: "random" }
+      }
+    
+      expect(response.status).to eq(400)
+      json = JSON.parse(response.body, symbolize_names: true)
+      expect(json[:errors].any? { |e| e.include?("Value type is not included in the list") }).to be true
+    end
+  end
 end
