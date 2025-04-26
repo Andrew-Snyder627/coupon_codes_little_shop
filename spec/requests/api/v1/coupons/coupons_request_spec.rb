@@ -30,6 +30,21 @@ RSpec.describe "Coupons API", type: :request do
       expect(json[:data][:attributes][:name]).to eq(coupon.name)
       expect(json[:data][:attributes]).to have_key(:times_used)
     end
+
+    it "returns the correct times_used count for a coupon" do
+      merchant = create(:merchant)
+      coupon = create(:coupon, merchant: merchant)
+      customer = create(:customer)
+    
+      create_list(:invoice, 3, merchant: merchant, customer: customer, coupon: coupon)
+    
+      get api_v1_merchant_coupon_path(merchant, coupon)
+    
+      expect(response).to be_successful
+      json = JSON.parse(response.body, symbolize_names: true)
+    
+      expect(json[:data][:attributes][:times_used]).to eq(3)
+    end
   end
 
   describe "POST /create" do
@@ -177,7 +192,6 @@ RSpec.describe "Coupons API", type: :request do
     
       expect(response.status).to eq(400)
       json = JSON.parse(response.body, symbolize_names: true)
-      puts json[:errors]
       expect(json[:errors].any? { |e| e.include?("Validation failed: Value type is not included in the list") }).to be true
     end
 
