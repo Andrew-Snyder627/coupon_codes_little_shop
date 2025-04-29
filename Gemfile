@@ -45,6 +45,7 @@ group :development, :test do
   gem "simplecov"
   gem "shoulda-matchers"
   gem "factory_bot_rails"
+  gem "rufo"
 end
 
 group :development do

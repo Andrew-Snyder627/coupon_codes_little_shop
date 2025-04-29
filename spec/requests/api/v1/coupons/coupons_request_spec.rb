@@ -1,4 +1,4 @@
-require 'rails_helper'
+require "rails_helper"
 
 RSpec.describe "Coupons API", type: :request do
   describe "GET /index" do
@@ -33,25 +33,25 @@ RSpec.describe "Coupons API", type: :request do
       merchant = create(:merchant)
       create_list(:coupon, 2, merchant: merchant, active: false)
       create(:coupon, merchant: merchant, active: true)
-  
+
       get api_v1_merchant_coupons_path(merchant), params: { active: "false" }
-  
+
       expect(response).to be_successful
       json = JSON.parse(response.body, symbolize_names: true)
-  
+
       expect(json[:data].length).to eq(2)
       expect(json[:data].all? { |c| c[:attributes][:active] == false }).to be true
     end
-  
+
     it "returns an empty array for invalid active param" do
       merchant = create(:merchant)
       create_list(:coupon, 2, merchant: merchant)
-  
+
       get api_v1_merchant_coupons_path(merchant), params: { active: "peanut butter" }
-  
+
       expect(response).to be_successful
       json = JSON.parse(response.body, symbolize_names: true)
-  
+
       expect(json[:data]).to eq([])
     end
   end
@@ -75,14 +75,14 @@ RSpec.describe "Coupons API", type: :request do
       merchant = create(:merchant)
       coupon = create(:coupon, merchant: merchant)
       customer = create(:customer)
-    
+
       create_list(:invoice, 3, merchant: merchant, customer: customer, coupon: coupon)
-    
+
       get api_v1_merchant_coupon_path(merchant, coupon)
-    
+
       expect(response).to be_successful
       json = JSON.parse(response.body, symbolize_names: true)
-    
+
       expect(json[:data][:attributes][:times_used]).to eq(3)
     end
   end
@@ -96,7 +96,7 @@ RSpec.describe "Coupons API", type: :request do
         code: "HOLIDAY2025",
         value: 25,
         value_type: "percent",
-        active: true
+        active: true,
       }
 
       post api_v1_merchant_coupons_path(merchant), params: { coupon: coupon_params }
@@ -135,7 +135,7 @@ RSpec.describe "Coupons API", type: :request do
         code: "EXTRA2025",
         value: 20,
         value_type: "percent",
-        active: true
+        active: true,
       }
 
       post api_v1_merchant_coupons_path(merchant), params: { coupon: new_coupon_params }
@@ -157,7 +157,7 @@ RSpec.describe "Coupons API", type: :request do
         code: "DUPE",
         value: 10,
         value_type: "dollar",
-        active: true
+        active: true,
       }
 
       post api_v1_merchant_coupons_path(merchant), params: { coupon: new_coupon_params }
@@ -191,11 +191,11 @@ RSpec.describe "Coupons API", type: :request do
         code: "NONAME",
         value: 10,
         value_type: "dollar",
-        active: true
+        active: true,
       }
-    
+
       post api_v1_merchant_coupons_path(merchant), params: { coupon: invalid_params }
-    
+
       expect(response.status).to eq(400)
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:errors].any? { |e| e.include?("Name can't be blank") }).to be true
@@ -203,16 +203,16 @@ RSpec.describe "Coupons API", type: :request do
 
     it "returns an error when creating a coupon without a value" do
       merchant = create(:merchant)
-    
+
       invalid_params = {
         name: "No Value",
         code: "NOVALUE",
         value_type: "percent",
-        active: true
+        active: true,
       }
-    
+
       post api_v1_merchant_coupons_path(merchant), params: { coupon: invalid_params }
-    
+
       expect(response.status).to eq(400)
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:errors].any? { |e| e.include?("Validation failed: Value can't be blank") }).to be true
@@ -220,16 +220,16 @@ RSpec.describe "Coupons API", type: :request do
 
     it "returns an error when creating a coupon without a value type" do
       merchant = create(:merchant)
-    
+
       invalid_params = {
         name: "No Value Type",
         code: "NOVALUETYPE",
         value: 100,
-        active: true
+        active: true,
       }
-    
+
       post api_v1_merchant_coupons_path(merchant), params: { coupon: invalid_params }
-    
+
       expect(response.status).to eq(400)
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:errors].any? { |e| e.include?("Validation failed: Value type is not included in the list") }).to be true
@@ -237,17 +237,17 @@ RSpec.describe "Coupons API", type: :request do
 
     it "rejects a coupon with an invalid value_type" do
       merchant = create(:merchant)
-    
+
       bad_params = {
         name: "Wrong Type",
         code: "WRONG",
         value: 30,
         value_type: "BOGO",  # not allowed
-        active: true
+        active: true,
       }
-    
+
       post api_v1_merchant_coupons_path(merchant), params: { coupon: bad_params }
-    
+
       expect(response.status).to eq(400)
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:errors].any? { |e| e.include?("Value type is not included in the list") }).to be true
@@ -256,11 +256,11 @@ RSpec.describe "Coupons API", type: :request do
     it "returns an error when trying to update with an invalid value_type" do
       merchant = create(:merchant)
       coupon = create(:coupon, merchant: merchant)
-    
+
       patch api_v1_merchant_coupon_path(merchant, coupon), params: {
-        coupon: { value_type: "random" }
-      }
-    
+                                                             coupon: { value_type: "random" },
+                                                           }
+
       expect(response.status).to eq(400)
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:errors].any? { |e| e.include?("Value type is not included in the list") }).to be true
@@ -269,12 +269,12 @@ RSpec.describe "Coupons API", type: :request do
     # Error Handling Tests
     it "triggers error handling if coupon not found for show" do
       merchant = create(:merchant)
-    
+
       get api_v1_merchant_coupon_path(merchant, 999999)
-    
+
       expect(response).to_not be_successful
       expect(response).to have_http_status(:not_found)
-    
+
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:message]).to eq("your query could not be completed")
       expect(json[:errors].first).to match(/Couldn't find Coupon with 'id'=999999/)
@@ -283,19 +283,19 @@ RSpec.describe "Coupons API", type: :request do
 
     it "triggers error handling if creating a coupon with missing required fields" do
       merchant = create(:merchant)
-    
+
       invalid_params = {
         code: nil,  # missing required code
         value: 10,
         value_type: "dollar",
-        active: true
+        active: true,
       }
-    
+
       post api_v1_merchant_coupons_path(merchant), params: { coupon: invalid_params }
-    
+
       expect(response).to_not be_successful
       expect(response).to have_http_status(:bad_request)
-    
+
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:message]).to eq("your query could not be completed")
       expect(json[:errors].any? { |e| e.include?("Code can't be blank") }).to be true
@@ -304,14 +304,14 @@ RSpec.describe "Coupons API", type: :request do
     it "triggers error handling if malformed JSON is sent in the request" do
       merchant = create(:merchant)
       headers = { "CONTENT_TYPE" => "application/json" } # Needed to add this for the bad json
-    
+
       bad_json = '{ "coupon": { "name": "Bad Coupon", "code": "oops", "value": } }'  # malformed
-    
+
       post api_v1_merchant_coupons_path(merchant), headers: headers, params: bad_json
-    
+
       expect(response).to_not be_successful
       expect(response).to have_http_status(:bad_request)
-    
+
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:message]).to eq("your query could not be completed")
       expect(json[:errors].first).to include("Error occurred while parsing request parameters")
@@ -321,14 +321,14 @@ RSpec.describe "Coupons API", type: :request do
       merchant = create(:merchant)
       create_list(:coupon, 5, merchant: merchant, active: true)
       inactive_coupon = create(:coupon, merchant: merchant, active: false)
-    
+
       patch api_v1_merchant_coupon_path(merchant, inactive_coupon), params: {
-        coupon: { active: true }
-      }
-    
+                                                                      coupon: { active: true },
+                                                                    }
+
       expect(response).to_not be_successful
       expect(response.status).to eq(400)
-    
+
       json = JSON.parse(response.body, symbolize_names: true)
       expect(json[:message]).to eq("your query could not be completed")
       expect(json[:errors]).to include("This Merchant already has 5 active coupons")
